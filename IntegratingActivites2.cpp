@@ -32,3 +32,18 @@ Example answer: (C,D)=7, (A,B)=16, (B,C)=18, total 41 km.
 
 */
 
+#include <vector>
+
+struct Edge {
+    int u, v; // neighborhood indices (0=A, 1=B, ...)
+    int weight; //km
+};
+
+std::vector<Edge> fiberWiring (std::vector<std::vector<int>> matrix) {
+    std::vector<Edge> edges;
+return edges;
+}
+
+int main() {
+    return 0;
+};
