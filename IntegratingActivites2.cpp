@@ -65,9 +65,45 @@ std::vector<std::vector<int>> readMatrix(int n) {
     return matrix;
 }
 
+int findRoot (std::vector<int>& parent, int i) {
+    while (parent[i] != i) {
+        parent[i] = parent[parent[i]]; // path compression
+        i = parent[i];
+    }
+
+    return parent[i];
+}
+
 std::vector<Edge> fiberWiring (const std::vector<std::vector<int>>& matrix) {
+    size_t NeighborhoodsNumber = matrix.size();
     std::vector<Edge> edges;
-return edges;
+    for (size_t i = 0; i < NeighborhoodsNumber; i++) {
+        for (size_t j = i + 1; j < NeighborhoodsNumber; j++) {
+            if (matrix[i][j] > 0) {
+                edges.push_back({static_cast<int>(i), static_cast<int>(j), matrix[i][j]});
+            }
+        }
+    }
+
+    std::sort(edges.begin(), edges.end(), [](const Edge& a, const Edge& b) {
+        return a.weight < b.weight;
+    });
+
+    std::vector<Edge> mst;
+    std::vector<int> parent(NeighborhoodsNumber);
+    for (size_t i = 0; i < NeighborhoodsNumber; i++) parent[i] = static_cast<int>(i);
+
+    for (const Edge& edge : edges) {
+        int rootU = findRoot(parent, edge.u);
+        int rootV = findRoot(parent, edge.v);
+        if (rootU != rootV) {
+            mst.push_back(edge);
+            if (mst.size() == NeighborhoodsNumber - 1) break;
+            parent[rootU] = rootV;
+        }
+    }
+
+    return mst;
 }
 
 int main() {
@@ -76,7 +112,6 @@ int main() {
     std::vector<Point> exchanges;
 
     std::cin >> MatrixSize;
-    std::cout << MatrixSize << std::endl;
     std::vector<std::vector<int>> distances = readMatrix(MatrixSize);
     std::vector<std::vector<int>> capacities = readMatrix(MatrixSize);
 
@@ -85,7 +120,12 @@ int main() {
         std::cin >> c >> p.x >> c >> p.y >> c;
         exchanges.push_back(p);
     }
-    
-    fiberWiring(distances);
+
+    std::vector<Edge>  fiberEdges = fiberWiring(distances);
+    for (int i=0; i<fiberEdges.size(); i++) {
+        std::cout << "(" << char('A' + fiberEdges[i].u) << "," << char('A' + fiberEdges[i].v) << ")=" << fiberEdges[i].weight;
+        if (i < fiberEdges.size() - 1) std::cout << ", ";
+    }
+    std::cout << std::endl;
     return 0;
-}
+};
