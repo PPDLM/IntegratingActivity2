@@ -32,7 +32,9 @@ Example answer: (C,D)=7, (A,B)=16, (B,C)=18, total 41 km.
 
 */
 
+#include <iostream>
 #include <vector>
+#include <algorithm>
 
 struct Edge {
     int u, v; // neighborhood indices (0=A, 1=B, ...)
@@ -45,5 +47,22 @@ return edges;
 }
 
 int main() {
+    int N;
+
+    std::cin >> N;
+    std::cout << N;
+    std::vector<std::vector<int>> distances(N, std::vector<int>(N));
+
+    for (int i=0; i<N; i++) {
+        for (int j=0; j<N; j++) {
+            int d;
+            std::cin >> d;
+            distances[i][j] = d;
+        }
+    }
+    
+    
+std::cout << "\n[debug] " << distances[0][1] << " " << distances[2][3] << "\n";
+
     return 0;
-};
+}
