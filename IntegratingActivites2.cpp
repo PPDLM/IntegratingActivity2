@@ -36,33 +36,56 @@ Example answer: (C,D)=7, (A,B)=16, (B,C)=18, total 41 km.
 #include <vector>
 #include <algorithm>
 
+// Note on "std::"
+// Everything from the C++ Standard Library (cin, cout, vector, sort, ...) lives
+// inside a namespace called "std". A namespace is a named group that keeps
+// library names separate from our own names. "std::" means "the one from the
+// standard library", e.g. std::vector is the standard library's vector.
+// We write std:: explicitly instead of "using namespace std;" so that our own
+// names (e.g. a helper called distance or count) never clash with std's names.
+
 struct Edge {
     int u, v; // neighborhood indices (0=A, 1=B, ...)
     int weight; //km
 };
 
-std::vector<Edge> fiberWiring (std::vector<std::vector<int>> matrix) {
+struct Point {
+    double x, y;
+};
+
+std::vector<std::vector<int>> readMatrix(int n) {
+    std::vector<std::vector<int>> matrix(n, std::vector<int>(n));
+    for (int i=0; i<n; i++) {
+        for (int j=0; j<n; j++) {
+            int d;
+            std::cin >> d;
+            matrix[i][j] = d;
+        }
+    }
+    return matrix;
+}
+
+std::vector<Edge> fiberWiring (const std::vector<std::vector<int>>& matrix) {
     std::vector<Edge> edges;
 return edges;
 }
 
 int main() {
-    int N;
+    int MatrixSize = 0;
+    char c;
+    std::vector<Point> exchanges;
 
-    std::cin >> N;
-    std::cout << N;
-    std::vector<std::vector<int>> distances(N, std::vector<int>(N));
+    std::cin >> MatrixSize;
+    std::cout << MatrixSize << std::endl;
+    std::vector<std::vector<int>> distances = readMatrix(MatrixSize);
+    std::vector<std::vector<int>> capacities = readMatrix(MatrixSize);
 
-    for (int i=0; i<N; i++) {
-        for (int j=0; j<N; j++) {
-            int d;
-            std::cin >> d;
-            distances[i][j] = d;
-        }
+    for (int i=0; i<MatrixSize; i++) {
+        Point p;
+        std::cin >> c >> p.x >> c >> p.y >> c;
+        exchanges.push_back(p);
     }
     
-    
-std::cout << "\n[debug] " << distances[0][1] << " " << distances[2][3] << "\n";
-
+    fiberWiring(distances);
     return 0;
 }
