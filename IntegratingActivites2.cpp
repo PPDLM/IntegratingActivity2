@@ -2,7 +2,6 @@
 Description: Reads the distances, data capacities and exchange locations of N
 neighborhoods and prints the fiber wiring (MST), the mail delivery route (TSP),
 the maximum information flow and the region of each exchange (Voronoi).
-Authors: TODO Name - A0XXXXXXX, TODO Name - A0XXXXXXX, TODO Name - A0XXXXXXX
 Created: 2026-11-09   Last modified: 2026-11-10
 */
 
@@ -11,10 +10,13 @@ Created: 2026-11-09   Last modified: 2026-11-10
 #include <algorithm>
 #include <string>
 #include <iomanip>
+#include <queue>
+#include <climits>
 
 using namespace std;
 
 const double EPS = 1e-9;
+const int INF = 1000000000;
 
 struct Edge {
 	int u = 0;
@@ -128,33 +130,152 @@ vector<Edge> fiberWiring(const vector<vector<int>>& matrix) {
 	return mst;
 }
 
-// ==================== PART 2: TODO ====================
+// Gives the cost of going from neighborhood i to neighborhood j.
+// matrix: distances in km, 0 means there is no connection.
+// i: origin neighborhood.
+// j: destination neighborhood.
+// Returns: the distance, or INF when there is no cable between them.
+int travelCost(const vector<vector<int>>& matrix, int i, int j) {
+	if (i == j || matrix[i][j] <= 0) {
+		return INF;
+	}
+	return matrix[i][j];
+}
+
 // Part 2: finds the shortest route that visits every neighborhood exactly once
-// and returns to the first one (Traveling Salesman Problem).
+// and returns to the first one (Traveling Salesman Problem) using Held-Karp.
 // matrix: distances in km between neighborhoods (Matrix 1).
 // Returns: the neighborhood indices in visiting order, starting and ending at 0.
 //          Example for the sample input: {0, 1, 2, 3, 0}, printed as "A B C D A".
+//          The vector is empty when no route that visits every neighborhood exists.
 vector<int> deliveryRoute(const vector<vector<int>>& matrix) {
 	vector<int> route;
+	int n = matrix.size();
+	if (n == 0) {
+		return route;
+	}
+	if (n == 1) {
+		route.push_back(0);
+		route.push_back(0);
+		return route;
+	}
 
-	// TODO: implement the algorithm here and fill "route".
-	// main() already prints whatever this function returns.
+	int fullMask = (1 << n) - 1;
 
+	// cost[mask][last]: cheapest way to start at 0, visit exactly the
+	// neighborhoods in "mask" and end at "last"
+	vector<vector<int>> cost(1 << n, vector<int>(n, INF));
+	// previous[mask][last]: neighborhood visited right before "last"
+	vector<vector<int>> previous(1 << n, vector<int>(n, -1));
+
+	cost[1][0] = 0;
+
+	for (int mask = 1; mask <= fullMask; mask++) {
+		if ((mask & 1) == 0) {
+			continue;
+		}
+		for (int last = 0; last < n; last++) {
+			if ((mask & (1 << last)) == 0 || cost[mask][last] >= INF) {
+				continue;
+			}
+			for (int next = 0; next < n; next++) {
+				if (mask & (1 << next)) {
+					continue;
+				}
+				int step = travelCost(matrix, last, next);
+				if (step >= INF) {
+					continue;
+				}
+				int newMask = mask | (1 << next);
+				int newCost = cost[mask][last] + step;
+				if (newCost < cost[newMask][next]) {
+					cost[newMask][next] = newCost;
+					previous[newMask][next] = last;
+				}
+			}
+		}
+	}
+
+	// Closes the cycle by going back to neighborhood 0
+	int bestCost = INF;
+	int bestLast = -1;
+	for (int last = 1; last < n; last++) {
+		int back = travelCost(matrix, last, 0);
+		if (cost[fullMask][last] < INF && back < INF) {
+			if (cost[fullMask][last] + back < bestCost) {
+				bestCost = cost[fullMask][last] + back;
+				bestLast = last;
+			}
+		}
+	}
+	if (bestLast == -1) {
+		return route;
+	}
+
+	// Rebuilds the route from the end to the start
+	int mask = fullMask;
+	int current = bestLast;
+	route.push_back(0);
+	while (current != -1) {
+		route.push_back(current);
+		int before = previous[mask][current];
+		mask = mask ^ (1 << current);
+		current = before;
+	}
+	reverse(route.begin(), route.end());
 	return route;
 }
 
-// ==================== PART 3: TODO ====================
 // Part 3: finds the maximum information flow from the first neighborhood (A)
-// to the last one (Max Flow). The graph is directed: capacities[i][j] can be
-// different from capacities[j][i].
+// to the last one (Max Flow) using Edmonds-Karp. The graph is directed:
+// capacities[i][j] can be different from capacities[j][i].
 // capacities: maximum data capacity from neighborhood i to neighborhood j (Matrix 2).
 // Returns: the value of the maximum flow.
 int maxFlow(const vector<vector<int>>& capacities) {
 	int flow = 0;
+	int n = capacities.size();
+	if (n < 2) {
+		return flow;
+	}
+	int source = 0;
+	int sink = n - 1;
 
-	// TODO: implement the algorithm here and store the result in "flow".
-	// main() already prints whatever this function returns.
+	// Residual graph: capacity that is still available on each arc
+	vector<vector<int>> residual = capacities;
 
+	while (true) {
+		// BFS looking for a path with free capacity from source to sink
+		vector<int> parent(n, -1);
+		parent[source] = source;
+		queue<int> pending;
+		pending.push(source);
+		while (!pending.empty() && parent[sink] == -1) {
+			int u = pending.front();
+			pending.pop();
+			for (int v = 0; v < n; v++) {
+				if (parent[v] == -1 && residual[u][v] > 0) {
+					parent[v] = u;
+					pending.push(v);
+				}
+			}
+		}
+		if (parent[sink] == -1) {
+			break;
+		}
+
+		// Bottleneck: the smallest free capacity along the path
+		int bottleneck = INT_MAX;
+		for (int v = sink; v != source; v = parent[v]) {
+			bottleneck = min(bottleneck, residual[parent[v]][v]);
+		}
+
+		// Uses the capacity on the path and allows undoing it later
+		for (int v = sink; v != source; v = parent[v]) {
+			residual[parent[v]][v] -= bottleneck;
+			residual[v][parent[v]] += bottleneck;
+		}
+		flow = flow + bottleneck;
+	}
 	return flow;
 }
 
@@ -261,6 +382,10 @@ void printFiberWiring(const vector<Edge>& edges) {
 // Prints a route as neighborhood names separated by spaces.
 // route: neighborhood indices in visiting order.
 void printRoute(const vector<int>& route) {
+	if (route.empty()) {
+		cout << "No route visits every neighborhood exactly once" << endl;
+		return;
+	}
 	for (int i = 0; i < (int)route.size(); i++) {
 		cout << nodeName(route[i]);
 		if (i < (int)route.size() - 1) {
